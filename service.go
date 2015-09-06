@@ -8,7 +8,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
+
+const vulcanpath = "/vulcand/backends"
 
 var env Environment
 
@@ -31,9 +34,10 @@ func init() {
 		log.Fatal(err)
 	}
 	env = &Environment{
-		Port:         port,
-		env.Machines: machines,
-		env.Host:     host,
+		Port:     port,
+		Machines: machines,
+		Host:     host,
+		URL:      fmt.Sprintf("http://%v:%v", host, port),
 	}
 }
 
@@ -41,6 +45,7 @@ type Environment struct {
 	Port     int
 	Host     string
 	Machines []string
+	URL      string `json:"URL"`
 }
 
 func (e *Environment) refresh() {
@@ -54,18 +59,46 @@ func (e *Environment) refresh() {
 }
 
 type Service struct {
-	Public   bool
-	Category string
-	Title    string
-	Version  string
-	Handler  http.Handler
+	Title   string
+	Version string
+	Type    string `json:"Type"`
+	Handler http.Handler
+	backend string
+	server  string
 }
 
 func (s *Service) Serve() {
+	base := fmt.Sprintf("%v/%v.%v", vulcanpath, s.Title, s.Version)
+	s.backend = fmt.Sprintf("%v/backend", base)
+	s.server = fmt.Sprintf("%v/servers/%v.%v", base, env.Host, env.Port)
+
 	s.register()
+	go s.heartbeat()
 	http.ListenAndServe(":"+env.Port, s.Handler)
+}
+
+func (s *Service) register() {
+	client := etcd.NewClient(env.Machines)
+	client.set(s.backend, json.Marshall(s.Type), 0)
+	client.set(s.server, json.Marshall(env.URL), 10)
+}
+
+func (s *Service) unregister() {
+	client := etcd.NewClient(env.Machines)
+	client.delete(s.server, FALSE)
+}
+
+func (s *Service) heartbeat() {
+	for _ := range time.Tick(9 * time.Second) {
+		s.register()
+	}
+}
+
+func (s *Serice) shutdown() {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt,
+	signal.Notify(
+		c,
+		os.Interrupt,
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 	)
@@ -74,19 +107,6 @@ func (s *Service) Serve() {
 			s.unregister()
 		}
 	}()
-
-}
-
-func (s *Service) register() {
-	client := etcd.NewClient(env.Machines)
-}
-
-func (s *Service) unregister() {
-	client := etcd.NewClient(env.Machines)
-}
-
-func (s *Service) heartbeat() {
-
 }
 
 func getHost() (string, error) {
