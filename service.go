@@ -34,14 +34,16 @@ func (s *Service) Serve() {
 func (s *Service) register() {
 	client := etcd.NewClient(env.Machines)
 	servicetype, _ := json.Marshal(s)
+	//TODO: ERROR handling needs to be added
 	client.Set(s.backend, string(servicetype), 0)
 	serviceurl, _ := json.Marshal(env)
 	client.Set(s.server, string(serviceurl), 10)
 }
 
-func (s *Service) unregister() {
+func (s *Service) unregister() error {
 	client := etcd.NewClient(env.Machines)
-	client.Delete(s.server, false)
+	_, err := client.Delete(s.server, false)
+	return err
 }
 
 func (s *Service) heartbeat() {
@@ -62,8 +64,14 @@ func (s *Service) shutdown() {
 	)
 	go func() {
 		for _ = range c {
-			s.unregister()
-			os.Exit(0)
+			err = s.unregister()
+			if err == nil {
+				os.Exit(0)
+			} else {
+				//TODO: ERROR handling needs to be added
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 	}()
 }
