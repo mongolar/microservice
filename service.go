@@ -26,8 +26,8 @@ func (s *Service) Serve() {
 	s.server = fmt.Sprintf("%v/servers/%v.%v", base, env.Host, env.Port)
 	s.shutdown()
 	s.register()
-	go s.heartbeat()
-	go env.refresh()
+	s.heartbeat()
+	env.refresh()
 	http.ListenAndServe(fmt.Sprintf(":%v", env.Port), s.Handler)
 }
 
@@ -45,9 +45,11 @@ func (s *Service) unregister() {
 }
 
 func (s *Service) heartbeat() {
-	for _ = range time.Tick(9 * time.Second) {
-		s.register()
-	}
+	go func() {
+		for _ = range time.Tick(9 * time.Second) {
+			s.register()
+		}
+	}()
 }
 
 func (s *Service) shutdown() {
