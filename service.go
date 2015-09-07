@@ -21,7 +21,7 @@ type Service struct {
 }
 
 func (s *Service) Serve() {
-	base := fmt.Sprintf("%v/%v.%v", vulcanpath, s.Title, s.Version)
+	base := fmt.Sprintf("%v/%v.%v", VULCANPATH, s.Title, s.Version)
 	s.backend = fmt.Sprintf("%v/backend", base)
 	s.server = fmt.Sprintf("%v/servers/%v.%v", base, env.Host, env.Port)
 	s.shutdown()

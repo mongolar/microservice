@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const vulcanpath = "/vulcand/backends"
+const VULCANPATH = "/vulcand/backends"
 
 var env Environment
 
