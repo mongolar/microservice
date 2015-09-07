@@ -5,9 +5,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/coreos/go-etcd/etcd"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
 )
 
@@ -16,36 +20,33 @@ const vulcanpath = "/vulcand/backends"
 var env Environment
 
 func init() {
-	var port int = flag.Int("port", 0, "The microservice port.")
+	port := flag.String("port", "", "The microservice port.")
 	flag.Parse()
-	env = Environment{
-		Port:     port,
-		Machines: make([]string),
-	}
-	if port == 0 {
+	fmt.Println(*port)
+	if *(port) == "" {
 		log.Fatal(errors.New("Port parameter is required."))
 	}
-	host = getHost()
-	if host == "" {
-		log.Fatal(errors.New("MONGOLAR_SERVICE_HOST is not set, service host environement value is required."))
+	host, err := getHost()
+	if err != nil {
+		log.Fatal(err)
 	}
 	machines, err := getEtcdMachines()
 	if err != nil {
 		log.Fatal(err)
 	}
-	env = &Environment{
-		Port:     port,
+	env = Environment{
+		Port:     *port,
 		Machines: machines,
 		Host:     host,
-		URL:      fmt.Sprintf("http://%v:%v", host, port),
+		URL:      fmt.Sprintf("http://%v:%v", host, *port),
 	}
 }
 
 type Environment struct {
-	Port     int
-	Host     string
-	Machines []string
-	URL      string `json:"URL"`
+	Port     string   `json:"-"`
+	Host     string   `json:"-"`
+	Machines []string `json:"-"`
+	URL      string   `json:"URL"`
 }
 
 func (e *Environment) refresh() {
@@ -54,47 +55,49 @@ func (e *Environment) refresh() {
 		// TODO pass error to service here
 		fmt.Println(err)
 	} else {
-		etc.Machines = machines
+		env.Machines = machines
 	}
 }
 
 type Service struct {
-	Title   string
-	Version string
-	Type    string `json:"Type"`
-	Handler http.Handler
-	backend string
-	server  string
+	Title   string           `json:"-"`
+	Version string           `json:"-"`
+	Type    string           `json:"Type"`
+	Handler http.HandlerFunc `json:"-"`
+	backend string           `json:"-"`
+	server  string           `json:"-"`
 }
 
 func (s *Service) Serve() {
 	base := fmt.Sprintf("%v/%v.%v", vulcanpath, s.Title, s.Version)
 	s.backend = fmt.Sprintf("%v/backend", base)
 	s.server = fmt.Sprintf("%v/servers/%v.%v", base, env.Host, env.Port)
-
+	s.shutdown()
 	s.register()
 	go s.heartbeat()
-	http.ListenAndServe(":"+env.Port, s.Handler)
+	http.ListenAndServe(fmt.Sprintf(":%v", env.Port), s.Handler)
 }
 
 func (s *Service) register() {
 	client := etcd.NewClient(env.Machines)
-	client.set(s.backend, json.Marshall(s.Type), 0)
-	client.set(s.server, json.Marshall(env.URL), 10)
+	servicetype, _ := json.Marshal(s)
+	client.Set(s.backend, string(servicetype), 0)
+	serviceurl, _ := json.Marshal(env)
+	client.Set(s.server, string(serviceurl), 10)
 }
 
 func (s *Service) unregister() {
 	client := etcd.NewClient(env.Machines)
-	client.delete(s.server, FALSE)
+	client.Delete(s.server, false)
 }
 
 func (s *Service) heartbeat() {
-	for _ := range time.Tick(9 * time.Second) {
+	for _ = range time.Tick(9 * time.Second) {
 		s.register()
 	}
 }
 
-func (s *Serice) shutdown() {
+func (s *Service) shutdown() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(
 		c,
@@ -103,8 +106,9 @@ func (s *Serice) shutdown() {
 		syscall.SIGQUIT,
 	)
 	go func() {
-		for sig := range c {
+		for _ = range c {
 			s.unregister()
+			os.Exit(0)
 		}
 	}()
 }
@@ -112,20 +116,17 @@ func (s *Serice) shutdown() {
 func getHost() (string, error) {
 	host := os.Getenv("MONGOLAR_SERVICES_HOST")
 	if host == "" {
-		return host, errors.New("MONGOLAR_SERVICE_HOST is not set, service host environement value is required.")
+		return host, errors.New("MONGOLAR_SERVICES_HOST is not set, service host environement value is required.")
 	}
 	return host, nil
 }
 
 func getEtcdMachines() ([]string, error) {
 	etcd := os.Getenv("MONGOLAR_ETCD_MACHINES")
-	machines := make([]string, 0)
+	var machines []string
 	if etcd == "" {
 		return machines, errors.New("MONGOLAR_ETCD_MACHINES is not set, etcd machines environmental value is required.")
 	}
-	err := json.Unmarshal([]byte(etcd), &machines)
-	if err != nil {
-		err = fmt.Errorf("Unable to unmarshall MONGOLAR_ETCD_MACHINES: %s", err)
-	}
-	return machines, err
+	machines = strings.Split(etcd, "|")
+	return machines, nil
 }
