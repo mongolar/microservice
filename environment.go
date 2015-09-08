@@ -52,15 +52,17 @@ type Environment struct {
 }
 
 func (e *Environment) refresh() {
-	for _ = range time.Tick(10 * time.Second) {
-		etcdmachines, err := getEnvEtcdMachines()
-		if err != nil || *etcdmachines != "" {
-			//TODO: ERROR handling needs to be added
-			fmt.Println(err)
-		} else {
-			env.Machines = strings.Split(*etcdmachines, "|")
+	go func() {
+		for _ = range time.Tick(10 * time.Second) {
+			etcdmachines, err := getEnvEtcdMachines()
+			if err != nil || *etcdmachines != "" {
+				//TODO: ERROR handling needs to be added
+				fmt.Println(err)
+			} else {
+				env.Machines = strings.Split(*etcdmachines, "|")
+			}
 		}
-	}
+	}()
 }
 
 func getEnvHost() (*string, error) {

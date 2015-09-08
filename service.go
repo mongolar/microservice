@@ -64,7 +64,7 @@ func (s *Service) shutdown() {
 	)
 	go func() {
 		for _ = range c {
-			err = s.unregister()
+			err := s.unregister()
 			if err == nil {
 				os.Exit(0)
 			} else {
