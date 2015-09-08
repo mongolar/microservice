@@ -24,14 +24,14 @@ func init() {
 	}
 	if *host == "" {
 		var err error
-		host, err = getEnvHost()
+		host, err = getEnvValue("MONGOLAR_SERVICES_HOST")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 	if *etcdmachines == "" {
 		var err error
-		etcdmachines, err = getEnvEtcdMachines()
+		etcdmachines, err = getEnvValue("MONGOLAR_ETCD_MACHINES")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -54,7 +54,7 @@ type Environment struct {
 func (e *Environment) refresh() {
 	go func() {
 		for _ = range time.Tick(10 * time.Second) {
-			etcdmachines, err := getEnvEtcdMachines()
+			etcdmachines, err := getEnvValue("MONGOLAR_ETCD_MACHINES")
 			if err != nil || *etcdmachines != "" {
 				//TODO: ERROR handling needs to be added
 				fmt.Println(err)
@@ -65,18 +65,10 @@ func (e *Environment) refresh() {
 	}()
 }
 
-func getEnvHost() (*string, error) {
-	host := os.Getenv("MONGOLAR_SERVICES_HOST")
-	if host == "" {
-		return &host, errors.New("MONGOLAR_SERVICES_HOST is not set, service host environement value is required.")
+func getEnvValue(name string) (*string, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		return &value, fmt.Errorf("%v is not set, %v environment value is required.", name, name)
 	}
-	return &host, nil
-}
-
-func getEnvEtcdMachines() (*string, error) {
-	etcdmachines := os.Getenv("MONGOLAR_ETCD_MACHINES")
-	if etcdmachines == "" {
-		return &etcdmachines, errors.New("MONGOLAR_ETCD_MACHINES is not set, etcd machines environmental value is required.")
-	}
-	return &etcdmachines, nil
+	return &value, nil
 }
