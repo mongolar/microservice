@@ -42,6 +42,7 @@ func init() {
 		Host:     *host,
 		URL:      fmt.Sprintf("http://%v:%v", *host, *port),
 	}
+	env.refresh()
 }
 
 type Environment struct {

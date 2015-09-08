@@ -27,7 +27,6 @@ func (s *Service) Serve() {
 	s.shutdown()
 	s.register()
 	s.heartbeat()
-	env.refresh()
 	http.ListenAndServe(fmt.Sprintf(":%v", env.Port), s.Handler)
 }
 
