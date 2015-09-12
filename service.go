@@ -62,7 +62,7 @@ func (s *Service) servePrivate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) bootstrap() {
 	s.shutdown()
-	s.register()
+	s.registerPrivateServer()
 	s.heartbeat()
 	s.watchPrivateClientKeys()
 }
@@ -71,12 +71,11 @@ func (s *Service) BackendPath() string {
 	return fmt.Sprintf("%v/backend", s.basePath())
 }
 func (s *Service) ServerPath() string {
-	return fmt.Sprintf("%v/servers/%v.%v", s.BackendPath(), env.Host, env.Port)
+	return fmt.Sprintf("%v/servers/%v.%v", s.basePath(), env.Host, env.Port)
 }
 
 func (s *Service) PrivateServerKeyPath() string {
-	backend := s.BackendPath()
-	return fmt.Sprintf("%v/privatekey", s.BackendPath())
+	return fmt.Sprintf("%v/privatekey", s.basePath())
 }
 
 func (s *Service) basePath() string {
@@ -96,6 +95,7 @@ func (s *Service) lead(client *etcd.Client) {
 		s.follow(client)
 		return
 	}
+	s.updatePrivateServerKeys(resp)
 	// This is leadership so start go routine
 	go func() {
 		for _ = range time.Tick(9 * time.Second) {
@@ -116,7 +116,9 @@ func (s *Service) validatePrivateServer(r *http.Request) bool {
 }
 
 func (s *Service) updatePrivateServerKeys(r *etcd.Response) {
-	s.privateServerKeyOld = r.PrevNode.Value
+	if r.PrevNode != nil {
+		s.privateServerKeyOld = r.PrevNode.Value
+	}
 	s.privateServerKey = r.Node.Value
 }
 
@@ -127,18 +129,15 @@ func (s *Service) register() {
 	client.Set(s.BackendPath(), string(servicetype), 0)
 	serviceurl, _ := json.Marshal(env)
 	client.Set(s.ServerPath(), string(serviceurl), 10)
-	if s.Private {
-		s.registerPrivateServer()
-	}
 }
 func (s *Service) registerPrivateServer() {
 	client := etcd.NewClient(env.Machines)
-	pk, err := client.Get(s.PrivateServerKeyPath(), false, false)
+	_, err := client.Get(s.PrivateServerKeyPath(), false, false)
 	if err != nil {
 		//TODO check for key not set error
 		s.lead(client)
 	} else {
-		s.follow(client)
+		//s.follow(client)
 	}
 }
 
@@ -147,7 +146,7 @@ func (s *Service) unregister() error {
 	_, err := client.Delete(s.ServerPath(), false)
 	//TODO unregister private key
 	if s.Private {
-		_, err := client.Delete(s.ServerPath(), false)
+		_, err = client.Delete(s.ServerPath(), false)
 	}
 	return err
 }
@@ -197,11 +196,11 @@ func (s *Service) shutdown() {
 
 func watchPrivateKey(key string, set func(*etcd.Response)) {
 	client := etcd.NewClient(env.Machines)
-	wc := make(chan etcd.Response)
+	wc := make(chan *etcd.Response)
 	go client.Watch(key, 0, false, wc, nil)
 	go func() {
 		for r := range wc {
-			set(&r)
+			set(r)
 		}
 	}()
 }
