@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/coreos/go-etcd/etcd"
@@ -31,7 +33,6 @@ func GetServiceConfig() *Service {
 	service := new(Service)
 	v := viper.New()
 	v.SetConfigName("Service")
-	//v.AddConfigPath(".")
 	err := v.ReadInConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -116,6 +117,12 @@ func (s *Service) validatePrivateServer(r *http.Request) bool {
 }
 
 func (s *Service) updatePrivateServerKeys(r *etcd.Response) {
+	fmt.Println(r.Action)
+	if r.Action == "expire" || r.Action == "delete" {
+		client := etcd.NewClient(env.Machines)
+		s.lead(client)
+		return
+	}
 	if r.PrevNode != nil {
 		s.privateServerKeyOld = r.PrevNode.Value
 	}
@@ -131,13 +138,14 @@ func (s *Service) register() {
 	client.Set(s.ServerPath(), string(serviceurl), 10)
 }
 func (s *Service) registerPrivateServer() {
+	fmt.Println(s.PrivateServerKeyPath())
 	client := etcd.NewClient(env.Machines)
 	_, err := client.Get(s.PrivateServerKeyPath(), false, false)
 	if err != nil {
 		//TODO check for key not set error
 		s.lead(client)
 	} else {
-		//s.follow(client)
+		s.follow(client)
 	}
 }
 
@@ -205,5 +213,10 @@ func watchPrivateKey(key string, set func(*etcd.Response)) {
 	}()
 }
 func newPrivateServerKey() string {
-	return "test"
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	if err != nil {
+		return ""
+	}
+	return base64.URLEncoding.EncodeToString(key)
 }
