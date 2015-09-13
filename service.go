@@ -29,7 +29,7 @@ type Service struct {
 	privateServerKey    string
 }
 
-func GetServiceConfig() *Service {
+func New() *Service {
 	service := new(Service)
 	v := viper.New()
 	v.SetConfigName("Service")
@@ -83,31 +83,6 @@ func (s *Service) basePath() string {
 	return fmt.Sprintf("%v/%v.%v", VULCANPATH, s.Title, s.Version)
 }
 
-func (s *Service) follow(client *etcd.Client) {
-	watchPrivateKey(s.PrivateServerKeyPath(), s.updatePrivateServerKeys)
-}
-
-func (s *Service) lead(client *etcd.Client) {
-	// Attempt to set leadership for private key management
-	resp, err := client.Create(s.PrivateServerKeyPath(), newPrivateServerKey(), 10)
-	// If err from creation, management has already been established by another node
-	if err != nil { //TODO: check if err is key already set
-		// Take follower role and exit
-		s.follow(client)
-		return
-	}
-	s.updatePrivateServerKeys(resp)
-	// This is leadership so start go routine
-	go func() {
-		for _ = range time.Tick(9 * time.Second) {
-			resp, err := client.Set(s.PrivateServerKeyPath(), newPrivateServerKey(), 10)
-			// If set is successful update both keys
-			if err == nil {
-				s.updatePrivateServerKeys(resp)
-			}
-		}
-	}()
-}
 func (s *Service) validatePrivateServer(r *http.Request) bool {
 	key := r.Header.Get("PrivateServerKey")
 	if key != s.privateServerKey && key != s.privateServerKeyOld {
@@ -117,7 +92,6 @@ func (s *Service) validatePrivateServer(r *http.Request) bool {
 }
 
 func (s *Service) updatePrivateServerKeys(r *etcd.Response) {
-	fmt.Println(r.Action)
 	if r.Action == "expire" || r.Action == "delete" {
 		client := etcd.NewClient(env.Machines)
 		s.lead(client)
@@ -141,11 +115,10 @@ func (s *Service) registerPrivateServer() {
 	fmt.Println(s.PrivateServerKeyPath())
 	client := etcd.NewClient(env.Machines)
 	_, err := client.Get(s.PrivateServerKeyPath(), false, false)
+	s.follow(client)
 	if err != nil {
 		//TODO check for key not set error
 		s.lead(client)
-	} else {
-		s.follow(client)
 	}
 }
 
@@ -163,6 +136,31 @@ func (s *Service) heartbeat() {
 	go func() {
 		for _ = range time.Tick(9 * time.Second) {
 			s.register()
+		}
+	}()
+}
+
+func (s *Service) follow(client *etcd.Client) {
+	watchPrivateKey(s.PrivateServerKeyPath(), s.updatePrivateServerKeys)
+}
+
+func (s *Service) lead(client *etcd.Client) {
+	// Attempt to set leadership for private key management
+	_, err := client.Create(s.PrivateServerKeyPath(), newPrivateServerKey(), 10)
+	// If err from creation, management has already been established by another node
+	if err != nil { //TODO: check if err is key already set
+		// Already follower exit
+		return
+	}
+	// This is leadership so start go routine
+	go func() {
+		for _ = range time.Tick(9 * time.Second) {
+			_, err := client.Set(s.PrivateServerKeyPath(), newPrivateServerKey(), 10)
+			// If set is successful update both keys
+			if err == nil {
+				//TODO: handle error
+				fmt.Println(err)
+			}
 		}
 	}()
 }
@@ -212,6 +210,7 @@ func watchPrivateKey(key string, set func(*etcd.Response)) {
 		}
 	}()
 }
+
 func newPrivateServerKey() string {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
