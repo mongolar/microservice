@@ -16,14 +16,14 @@ import (
 )
 
 type Service struct {
-	Title               string           `json:"Title"`
-	Version             string           `json:"Version"`
-	Type                string           `json:"Type"`
-	Private             bool             `json:"Private"`
-	Requires            []Service        `json:"Requires,omitempty"`
-	Parameters          []string         `json:"Parameters"`
-	Method              string           `json:"Method"`
-	Handler             http.HandlerFunc `json:"-"`
+	Title               string       `json:"Title"`
+	Version             string       `json:"Version"`
+	Type                string       `json:"Type"`
+	Private             bool         `json:"Private"`
+	Requires            []Service    `json:"Requires,omitempty"`
+	Parameters          []string     `json:"Parameters"`
+	Method              string       `json:"Method"`
+	Handler             http.Handler `json:"-"`
 	privateClientKeys   map[string]string
 	privateServerKeyOld string
 	privateServerKey    string
@@ -55,7 +55,7 @@ func (s *Service) Serve() {
 
 func (s *Service) servePrivate(w http.ResponseWriter, r *http.Request) {
 	if s.validatePrivateServer(r) {
-		s.Handler(w, r)
+		s.Handler.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "Forbidden", 403)
 	}
