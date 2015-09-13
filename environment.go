@@ -20,18 +20,18 @@ func init() {
 	etcdmachines := flag.String("etcd", "", "The etcd machines.")
 	flag.Parse()
 	if *port == "" {
-		log.Fatal(errors.New("Port parameter is required."))
+		log.Fatal(errors.New("Port parameter is a required flag."))
 	}
 	if *host == "" {
 		var err error
-		host, err = getEnvValue("MONGOLAR_SERVICES_HOST")
+		host, err = getEnvValue("MICRO_SERVICES_HOST")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 	if *etcdmachines == "" {
 		var err error
-		etcdmachines, err = getEnvValue("MONGOLAR_ETCD_MACHINES")
+		etcdmachines, err = getEnvValue("ETCD_MACHINES")
 		if err != nil {
 			log.Fatal(err)
 		}
