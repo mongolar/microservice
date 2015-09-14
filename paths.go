@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+const vulcanpath = "/vulcand/backends"
+
 func (s *Service) backendPath() string {
 	return fmt.Sprintf("%v/backend", s.basePath())
 }
