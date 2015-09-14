@@ -8,7 +8,7 @@ func (s *Service) backendPath() string {
 	return fmt.Sprintf("%v/backend", s.basePath())
 }
 func (s *Service) serverPath() string {
-	return fmt.Sprintf("%v/servers/%v.%v", s.basePath(), env.Host, env.Port)
+	return fmt.Sprintf("%v/servers/%v.%v", s.basePath(), Env.Host, Env.Port)
 }
 
 func (s *Service) privateServiceKeyPath() string {
@@ -16,5 +16,5 @@ func (s *Service) privateServiceKeyPath() string {
 }
 
 func (s *Service) basePath() string {
-	return fmt.Sprintf("%v/%v.%v", VULCANPATH, s.Title, s.Version)
+	return fmt.Sprintf("%v/%v.%v", vulcanpath, s.Title, s.Version)
 }

@@ -10,15 +10,15 @@ import (
 	"time"
 )
 
-const VULCANPATH = "/vulcand/backends"
+const vulcanpath = "/vulcand/backends"
 
-var env Environment
+var Env Environment
 
 func init() {
-	env = Environment{}
-	flag.StringVar(&env.Port, "port", "", "The microservice port.")
-	flag.StringVar(&env.Host, "host", "", "The microservice host.")
-	flag.StringVar(&env.machines, "etcd", "", "The etcd machines.")
+	Env = Environment{}
+	flag.StringVar(&Env.Port, "port", "", "The microservice port.")
+	flag.StringVar(&Env.Host, "host", "", "The microservice host.")
+	flag.StringVar(&Env.machines, "etcd", "", "The etcd machines.")
 }
 
 type Environment struct {
@@ -29,7 +29,6 @@ type Environment struct {
 }
 
 func (e *Environment) bootstrap() {
-
 	if e.Port == "" {
 		log.Fatal(errors.New("Port parameter is a required flag."))
 	}
@@ -45,26 +44,30 @@ func (e *Environment) bootstrap() {
 		e.machines, err = getEnvValue("ETCD_MACHINES")
 		if err != nil {
 			log.Fatal(err)
+		} else {
+			e.refreshEtcdMachines()
 		}
 	}
 	e.URL = fmt.Sprintf("http://%v:%v", e.Host, e.Port)
-	env.refresh()
 }
 
 func (e *Environment) Machines() []string {
-	return strings.Split(env.machines, "|")
+	return strings.Split(e.machines, "|")
 }
 
-func (e *Environment) refresh() {
-
+func (e *Environment) refreshEtcdMachines() {
 	go func() {
 		for _ = range time.Tick(10 * time.Second) {
 			etcdmachines, err := getEnvValue("ETCD_MACHINES")
-			if err != nil || etcdmachines != "" {
-				//TODO: ERROR handling needs to be added
-				fmt.Println(err)
+			if err != nil || etcdmachines == "" {
+				if err != nil {
+					fmt.Fprint(os.Stderr, err)
+				}
+				if etcdmachines == "" {
+					fmt.Fprint(os.Stderr, "ETCD_MACHINES not set.")
+				}
 			} else {
-				env.machines = etcdmachines
+				e.machines = etcdmachines
 			}
 		}
 	}()
@@ -73,7 +76,7 @@ func (e *Environment) refresh() {
 func getEnvValue(name string) (string, error) {
 	value := os.Getenv(name)
 	if value == "" {
-		return value, fmt.Errorf("%v is not set, %v environment value is required.", name, name)
+		return value, fmt.Errorf("%v is not set, %v environment value is required", name, name)
 	}
 	return value, nil
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/coreos/go-etcd/etcd"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -26,38 +27,37 @@ func (s *Service) validatePrivateServer(r *http.Request) bool {
 }
 
 func (s *Service) registerPrivateServer() {
-	client := etcd.NewClient(env.Machines())
 	s.privateServiceKey = newPrivateServerKey()
 	s.privateServiceKeyOld = newPrivateServerKey()
-	s.follow(client)
-	s.lead(client)
+	s.follow()
+	s.lead()
 }
 
-func (s *Service) follow(client *etcd.Client) {
+func (s *Service) follow() {
 	watchPrivateKey(s.privateServiceKeyPath(), s.updatePrivateServerKeys)
 }
 
-func (s *Service) lead(client *etcd.Client) {
+func (s *Service) lead() {
+	client := etcd.NewClient(Env.Machines())
 	_, err := client.Create(s.privateServiceKeyPath(), newPrivateServerKey(), Frequency)
+	defer client.Close()
 	if err != nil { //TODO: check if err is key already set
 		return
 	}
 	go func() {
 		for _ = range time.Tick(time.Duration(Frequency-1) * time.Second) {
 			_, err := client.Set(s.privateServiceKeyPath(), newPrivateServerKey(), Frequency)
-			if err == nil {
+			if err != nil {
 				//TODO: handle error
-				fmt.Println(err)
+				fmt.Fprint(os.Stderr, err)
 			}
 		}
 	}()
 }
 
 func (s *Service) updatePrivateServerKeys(r *etcd.Response) {
-	fmt.Println(r)
 	if r.Action == "expire" || r.Action == "delete" {
-		client := etcd.NewClient(env.Machines())
-		s.lead(client)
+		s.lead()
 		return
 	}
 	if r.PrevNode != nil {
@@ -80,7 +80,8 @@ func (s *Service) updatePrivateClientKey(r *etcd.Response) {
 }
 
 func watchPrivateKey(key string, set func(*etcd.Response)) {
-	client := etcd.NewClient(env.Machines())
+	client := etcd.NewClient(Env.Machines())
+	defer client.Close()
 	wc := make(chan *etcd.Response)
 	go client.Watch(key, 0, false, wc, nil)
 	go func() {

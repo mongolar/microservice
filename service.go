@@ -32,21 +32,20 @@ var DefaultService *Service
 var Frequency uint64
 
 func init() {
-	noconfig := flag.Bool("noconf", false, "Do not load Services config file.")
 	flag.Uint64Var(&Frequency, "frequency", 10, "The frequency at which the service updates statuses.")
-	if *noconfig {
-		return
-	}
 	service := new(Service)
-	v := viper.New()
-	v.SetConfigName("Service")
-	err := v.ReadInConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = v.Marshal(service)
-	if err != nil {
-		log.Fatal(err)
+	_, err := os.Stat("Service.yaml")
+	if err == nil {
+		v := viper.New()
+		v.SetConfigName("Service")
+		err := v.ReadInConfig()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = v.Marshal(service)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	service.Handler = http.DefaultServeMux
 	DefaultService = service
@@ -56,7 +55,7 @@ func Serve() {
 	DefaultService.Serve()
 }
 
-func SetHandler(handler http.Handler) {
+func Handler(handler http.Handler) {
 	DefaultService.Handler = handler
 }
 
@@ -64,18 +63,17 @@ func (s *Service) Serve() {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	env.bootstrap()
+	Env.bootstrap()
 	s.bootstrap()
 	if s.Private {
-		http.ListenAndServe(fmt.Sprintf(":%v", env.Port), http.HandlerFunc(s.servePrivate))
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", Env.Port), http.HandlerFunc(s.servePrivate)))
 	} else {
-		http.ListenAndServe(fmt.Sprintf(":%v", env.Port), s.Handler)
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", Env.Port), s.Handler))
 	}
 }
 
 func (s *Service) bootstrap() {
 	s.register()
-	fmt.Println(s.Private)
 	if s.Private {
 		s.registerPrivateServer()
 	}
@@ -85,21 +83,35 @@ func (s *Service) bootstrap() {
 }
 
 func (s *Service) register() {
-	client := etcd.NewClient(env.Machines())
-	servicetype, _ := json.Marshal(s)
+	client := etcd.NewClient(Env.Machines())
+	servicetype, err := json.Marshal(s)
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
 	//TODO: ERROR handling needs to be added
-	client.Set(s.backendPath(), string(servicetype), 0)
-	serviceurl, _ := json.Marshal(env)
-	client.Set(s.serverPath(), string(serviceurl), Frequency)
+	_, err = client.Set(s.backendPath(), string(servicetype), 0)
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+	serviceurl, err := json.Marshal(Env)
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+	_, err = client.Set(s.serverPath(), string(serviceurl), Frequency)
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+	client.Close()
 }
 
 func (s *Service) unregister() error {
-	client := etcd.NewClient(env.Machines())
+	client := etcd.NewClient(Env.Machines())
 	_, err := client.Delete(s.serverPath(), false)
 	//TODO unregister private key
 	if s.Private {
 		_, err = client.Delete(s.privateServiceKeyPath(), false)
 	}
+	client.Close()
 	return err
 }
 
@@ -125,8 +137,7 @@ func (s *Service) shutdown() {
 			if err == nil {
 				os.Exit(0)
 			} else {
-				//TODO: ERROR handling needs to be added
-				fmt.Println(err)
+				fmt.Fprint(os.Stderr, err)
 				os.Exit(1)
 			}
 		}
