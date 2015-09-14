@@ -19,6 +19,9 @@ import (
 	"time"
 )
 
+var DefaultService *Service
+var Frequency uint64
+
 // Service defines the service that will be declared to
 // Vulcand.
 type Service struct {
@@ -35,12 +38,15 @@ type Service struct {
 	privateServiceKey    string
 }
 
-var DefaultService *Service
-var Frequency uint64
+func New() *Service {
+	service := new(Service)
+	service.Handler = http.DefaultServeMux
+	return service
+}
 
 func init() {
 	flag.Uint64Var(&Frequency, "frequency", 10, "The frequency at which the service updates statuses.")
-	service := new(Service)
+	service := New()
 	_, err := os.Stat("Service.yaml")
 	if err == nil {
 		v := viper.New()
@@ -54,7 +60,6 @@ func init() {
 			log.Fatal(err)
 		}
 	}
-	service.Handler = http.DefaultServeMux
 	DefaultService = service
 }
 

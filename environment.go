@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const vulcanpath = "/vulcand/backends"
-
 var Env Environment
 
 func init() {
