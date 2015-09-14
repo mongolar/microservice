@@ -1,3 +1,6 @@
+//The service package is a wrapper tool to automaticaly declare and
+//register a microservice with vulcand as a backend.
+
 /*
 	The service package is a wrapper tool to automaticaly declare and
 	register a microservice with vulcand as a backend.
