@@ -15,61 +15,65 @@ const VULCANPATH = "/vulcand/backends"
 var env Environment
 
 func init() {
-	port := flag.String("port", "", "The microservice port.")
-	host := flag.String("host", "", "The microservice host.")
-	etcdmachines := flag.String("etcd", "", "The etcd machines.")
-	flag.Parse()
-	if *port == "" {
-		log.Fatal(errors.New("Port parameter is a required flag."))
-	}
-	if *host == "" {
-		var err error
-		host, err = getEnvValue("MICRO_SERVICES_HOST")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	if *etcdmachines == "" {
-		var err error
-		etcdmachines, err = getEnvValue("ETCD_MACHINES")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	env = Environment{
-		Port:     *port,
-		Machines: strings.Split(*etcdmachines, "|"),
-		Host:     *host,
-		URL:      fmt.Sprintf("http://%v:%v", *host, *port),
-	}
-	env.refresh()
+	env = Environment{}
+	flag.StringVar(&env.Port, "port", "", "The microservice port.")
+	flag.StringVar(&env.Host, "host", "", "The microservice host.")
+	flag.StringVar(&env.machines, "etcd", "", "The etcd machines.")
 }
 
 type Environment struct {
-	Port     string   `json:"-"`
-	Host     string   `json:"-"`
-	Machines []string `json:"-"`
-	URL      string   `json:"URL"`
+	Port     string `json:"-"`
+	Host     string `json:"-"`
+	URL      string `json:"URL"`
+	machines string `json:"-"`
+}
+
+func (e *Environment) bootstrap() {
+
+	if e.Port == "" {
+		log.Fatal(errors.New("Port parameter is a required flag."))
+	}
+	if e.Host == "" {
+		var err error
+		e.Host, err = getEnvValue("MICRO_SERVICES_HOST")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	if e.machines == "" {
+		var err error
+		e.machines, err = getEnvValue("ETCD_MACHINES")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	e.URL = fmt.Sprintf("http://%v:%v", e.Host, e.Port)
+	env.refresh()
+}
+
+func (e *Environment) Machines() []string {
+	return strings.Split(env.machines, "|")
 }
 
 func (e *Environment) refresh() {
+
 	go func() {
 		for _ = range time.Tick(10 * time.Second) {
-			etcdmachines, err := getEnvValue("MONGOLAR_ETCD_MACHINES")
-			if err != nil || *etcdmachines != "" {
+			etcdmachines, err := getEnvValue("ETCD_MACHINES")
+			if err != nil || etcdmachines != "" {
 				//TODO: ERROR handling needs to be added
 				fmt.Println(err)
 			} else {
-				env.Machines = strings.Split(*etcdmachines, "|")
+				env.machines = etcdmachines
 			}
 		}
 	}()
 }
 
-func getEnvValue(name string) (*string, error) {
+func getEnvValue(name string) (string, error) {
 	value := os.Getenv(name)
 	if value == "" {
-		return &value, fmt.Errorf("%v is not set, %v environment value is required.", name, name)
+		return value, fmt.Errorf("%v is not set, %v environment value is required.", name, name)
 	}
-	return &value, nil
+	return value, nil
 }
