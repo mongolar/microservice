@@ -3,7 +3,6 @@
 // Use of this source code is governed by the GPL-3
 // license that can be found in the LICENSE file.
 
-
 package service
 
 import (
@@ -20,6 +19,8 @@ import (
 	"time"
 )
 
+// Service defines the service that will be declared to
+// Vulcand.
 type Service struct {
 	Title                string       `json:"Title"`
 	Version              string       `json:"Version"`
