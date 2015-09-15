@@ -11,8 +11,9 @@ about the service to etcd in the format expected by vulcand.
 You can skip the service declaration and declare it straight in code
 as well by creating a new Service and setting the values manually.
 
-The fields for Service type
+Service type
 
+The fields included in the service type.
 	Title: Unique title for the service
 	Version: version id of the service
 	Type: the Type required by Vulcand
@@ -23,30 +24,53 @@ The fields for Service type
 	Method: The http method this service utilizes*
 	Handler: http.Handler (defaults to DefaultServeMux)
 
-	*(for future client auto generation)
+*(for future client auto generation)
 
-The service is registered as a backend for Vulcand using this standard
+Registration paths
 
-/vulcand/bakends/{Title}.{Version}/backend = json of service
-/vulcand/bakends/{Title}.{Version}/servers/{Host}.{Port} = "http://{Host}:{Port}
+The service is registered as a backend for Vulcand using this standard.
 
-If service is private
+	/vulcand/bakends/{Title}.{Version}/backend = json of service
+	/vulcand/bakends/{Title}.{Version}/servers/{Host}.{Port} = "http://{Host}:{Port}
 
-/vulcand/bakends/{Title}.{Version}/privatekey = rotating privatekey
-(see private service for more information)
+If service is marked private
+
+	/vulcand/bakends/{Title}.{Version}/privatekey = rotating privatekey
+	(see private service for more information)
 
 Environment Variables
 
 The below values are required unless set in flags.
 
-ETCD_MACHINES = a pipe delimited list of etcd machines, if the service utilizes
-this value it watches the value for changes based on the frequency flag
+	ETCD_MACHINES = a pipe delimited list of etcd machines, if the service utilizes
+	this value it watches the value for changes based on the frequency flag
 
-MICRO_SERVICES_HOST = hostname to declare for microservices on this machine
+	MICRO_SERVICES_HOST = hostname to declare for microservices on this machine
 
-Flags
--etcd: This flag declares the etcd machines, this overrides the Environment Variable
--frequency:
+Command Line Flags
+
+Values that are passed via command line.
+
+	-etcd: This flag declares the etcd machines, this overrides the ETCD_MACHINES
+
+	-frequency: The frequency at which the service will refresh its ttl for
+	Vulcand, and how often ETCD_MACHINES will be checked (default 10)
+
+	-host: host to declare for itself
+
+	-port: the port to serve this service (this field is required, unless hard coded)
+
+
+Private Service
+
+Private services are those microservices that are only supposed to be served to
+internal clients.  If the service being served is marked as private the service
+will attempt to lead private key generation.  It will maintain key values for
+2x the frequency but rotate keys at the frequency.
+
+The private key will be expected in the header of all internal requests.  All
+other requests will be marked as forbidden.
+
 
 
 */
