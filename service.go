@@ -22,28 +22,6 @@ import (
 var DefaultService *Service
 var Frequency uint64
 
-// Service defines the service that will be declared to
-// Vulcand.
-type Service struct {
-	Title                string       `json:"Title"`
-	Version              string       `json:"Version"`
-	Type                 string       `json:"Type"`
-	Private              bool         `json:"Private"`
-	Requires             []Service    `json:"Requires,omitempty"`
-	Parameters           []string     `json:"Parameters"`
-	Method               string       `json:"Method"`
-	Handler              http.Handler `json:"-"`
-	privateClientKeys    map[string]string
-	privateServiceKeyOld string
-	privateServiceKey    string
-}
-
-func New() *Service {
-	service := new(Service)
-	service.Handler = http.DefaultServeMux
-	return service
-}
-
 func init() {
 	flag.Uint64Var(&Frequency, "frequency", 10, "The frequency at which the service updates statuses.")
 	service := New()
@@ -63,12 +41,54 @@ func init() {
 	DefaultService = service
 }
 
-func Serve() {
-	DefaultService.Serve()
+// Service defines the service that will be declared to
+// Vulcand.
+type Service struct {
+	Title         string       `json:"Title"`
+	Version       string       `json:"Version"`
+	Type          string       `json:"Type"`
+	Private       bool         `json:"Private"`
+	Requires      []Service    `json:"Requires,omitempty"`
+	Parameters    []string     `json:"Parameters"`
+	Method        string       `json:"Method"`
+	Handler       http.Handler `json:"-"`
+	privateKeyOld string
+	privateKey    string
+	foreign       bool
+}
+
+func New() *Service {
+	service := new(Service)
+	service.Handler = http.DefaultServeMux
+	return service
 }
 
 func Handler(handler http.Handler) {
 	DefaultService.Handler = handler
+}
+
+func Get(title string, version string) (*Service, error) {
+	service := &Service{Title: title, Version: version, foreign: true}
+	err := service.Get()
+	if err == nil {
+		service.follow()
+	}
+	return service, err
+}
+
+func (s *Service) Get() error {
+	client := etcd.NewClient(Env.Machines())
+	defer client.Close()
+	raw, err := client.RawGet(s.backendPath(), false, false)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(raw.Body, s)
+	return err
+}
+
+func Serve() {
+	DefaultService.Serve()
 }
 
 func (s *Service) Serve() {
@@ -87,10 +107,10 @@ func (s *Service) Serve() {
 func (s *Service) bootstrap() {
 	s.register()
 	if s.Private {
-		s.registerPrivateServer()
+		s.registerPrivateService()
 	}
 	s.heartbeat()
-	s.watchPrivateClientKeys()
+	s.checkRequired()
 	s.shutdown()
 }
 
@@ -121,7 +141,7 @@ func (s *Service) unregister() error {
 	_, err := client.Delete(s.serverPath(), false)
 	//TODO unregister private key
 	if s.Private {
-		_, err = client.Delete(s.privateServiceKeyPath(), false)
+		_, err = client.Delete(s.privateKeyPath(), false)
 	}
 	client.Close()
 	return err
@@ -133,6 +153,17 @@ func (s *Service) heartbeat() {
 			s.register()
 		}
 	}()
+}
+func (s *Service) checkRequired() {
+	client := etcd.NewClient(Env.Machines())
+	defer client.Close()
+	for _, rs := range s.Requires {
+		_, err := client.Get(rs.basePath(), false, true)
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+		}
+		//TODO check if any servers registered
+	}
 }
 
 func (s *Service) shutdown() {

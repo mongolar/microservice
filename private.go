@@ -11,72 +11,60 @@ import (
 )
 
 func (s *Service) servePrivate(w http.ResponseWriter, r *http.Request) {
-	if s.validatePrivateServer(r) {
+	if s.validatePrivate(r) {
 		s.Handler.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "Forbidden", 403)
 	}
 }
 
-func (s *Service) validatePrivateServer(r *http.Request) bool {
+func (s *Service) validatePrivate(r *http.Request) bool {
 	key := r.Header.Get("PrivateServiceKey")
-	if key != s.privateServiceKey && key != s.privateServiceKeyOld {
+	if key != s.privateKey && key != s.privateKeyOld {
 		return false
 	}
 	return true
 }
 
-func (s *Service) registerPrivateServer() {
-	s.privateServiceKey = newPrivateServerKey()
-	s.privateServiceKeyOld = newPrivateServerKey()
+func (s *Service) registerPrivateService() {
+	s.privateKey = newPrivateKey()
+	s.privateKeyOld = newPrivateKey()
 	s.follow()
 	s.lead()
 }
 
 func (s *Service) follow() {
-	watchPrivateKey(s.privateServiceKeyPath(), s.updatePrivateServerKeys)
+	watchPrivateKey(s.privateKeyPath(), s.updatePrivateKeys)
 }
 
 func (s *Service) lead() {
 	client := etcd.NewClient(Env.Machines())
-	_, err := client.Create(s.privateServiceKeyPath(), newPrivateServerKey(), Frequency)
+	_, err := client.Create(s.privateKeyPath(), newPrivateKey(), Frequency)
 	defer client.Close()
 	if err != nil { //TODO: check if err is key already set
 		return
 	}
 	go func() {
 		for _ = range time.Tick(time.Duration(Frequency-1) * time.Second) {
-			_, err := client.Set(s.privateServiceKeyPath(), newPrivateServerKey(), Frequency)
+			_, err := client.Set(s.privateKeyPath(), newPrivateKey(), Frequency)
 			if err != nil {
-				//TODO: handle error
 				fmt.Fprint(os.Stderr, err)
 			}
 		}
 	}()
 }
 
-func (s *Service) updatePrivateServerKeys(r *etcd.Response) {
-	if r.Action == "expire" || r.Action == "delete" {
-		s.lead()
-		return
-	}
-	if r.PrevNode != nil {
-		s.privateServiceKeyOld = r.PrevNode.Value
-	}
-	s.privateServiceKey = r.Node.Value
-}
-
-func (s *Service) watchPrivateClientKeys() {
-	for _, r := range s.Requires {
-		if r.Private {
-			key := fmt.Sprintf("%v.%v", r.Title, r.Version)
-			watchPrivateKey(key, s.updatePrivateClientKey)
+func (s *Service) updatePrivateKeys(r *etcd.Response) {
+	if !s.foreign {
+		if r.Action == "expire" || r.Action == "delete" {
+			s.lead()
+			return
 		}
 	}
-}
-
-func (s *Service) updatePrivateClientKey(r *etcd.Response) {
-	s.privateClientKeys[r.Node.Key] = r.Node.Value
+	if r.PrevNode != nil {
+		s.privateKeyOld = r.PrevNode.Value
+	}
+	s.privateKey = r.Node.Value
 }
 
 func watchPrivateKey(key string, set func(*etcd.Response)) {
@@ -91,12 +79,12 @@ func watchPrivateKey(key string, set func(*etcd.Response)) {
 	}()
 }
 
-func newPrivateServerKey() string {
+func newPrivateKey() string {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	if err != nil {
 		//TODO output err
-		return newPrivateServerKey()
+		return newPrivateKey()
 	}
 	return base64.URLEncoding.EncodeToString(key)
 }
