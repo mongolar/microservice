@@ -19,7 +19,10 @@ import (
 	"time"
 )
 
+// DefaultService is default server similair to the DefaultMuxServer
 var DefaultService *Service
+
+// Frequency with which to refresh service values
 var Frequency uint64
 
 func init() {
@@ -49,7 +52,7 @@ type Service struct {
 	Type          string       `json:"Type"`
 	Private       bool         `json:"Private"`
 	Requires      []Service    `json:"Requires,omitempty"`
-	Parameters    []string     `json:"Parameters"`
+	Parameters    []Parameter  `json:"Parameters"`
 	Method        string       `json:"Method"`
 	Handler       http.Handler `json:"-"`
 	privateKeyOld string
