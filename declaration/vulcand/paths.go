@@ -6,17 +6,17 @@ import (
 
 const vulcanpath = "/vulcand/backends"
 
-func (s *Service) backendPath() string {
-	return fmt.Sprintf("%v/backend", s.basePath())
+func backendPath(s *Service) string {
+	return fmt.Sprintf("%v/backend", s.basePath(s))
 }
-func (s *Service) serverPath() string {
-	return fmt.Sprintf("%v/servers/%v.%v", s.basePath(), Env.Host, Env.Port)
-}
-
-func (s *Service) privateKeyPath() string {
-	return fmt.Sprintf("%v/privatekey", s.basePath())
+func serverPath(s *Service) string {
+	return fmt.Sprintf("%v/servers/%v.%v", s.basePath(s), Env.Host, Env.Port)
 }
 
-func (s *Service) basePath() string {
+func privateKeyPath(s *Service) string {
+	return fmt.Sprintf("%v/privatekey", s.basePath(s))
+}
+
+func basePath(s *Service) string {
 	return fmt.Sprintf("%v/%v.%v", vulcanpath, s.Title, s.Version)
 }

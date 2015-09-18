@@ -16,14 +16,12 @@ func init() {
 	Env = Environment{}
 	flag.StringVar(&Env.Port, "port", "", "The microservice port.")
 	flag.StringVar(&Env.Host, "host", "", "The microservice host.")
-	flag.StringVar(&Env.machines, "etcd", "", "The etcd machines.")
 }
 
 type Environment struct {
-	Port     string `json:"-"`
-	Host     string `json:"-"`
-	URL      string `json:"URL"`
-	machines string `json:"-"`
+	Port string `json:"-"`
+	Host string `json:"-"`
+	URL  string `json:"URL"`
 }
 
 func (e *Environment) bootstrap() {
@@ -51,24 +49,6 @@ func (e *Environment) bootstrap() {
 
 func (e *Environment) Machines() []string {
 	return strings.Split(e.machines, "|")
-}
-
-func (e *Environment) refreshEtcdMachines() {
-	go func() {
-		for _ = range time.Tick(10 * time.Second) {
-			etcdmachines, err := getEnvValue("ETCD_MACHINES")
-			if err != nil || etcdmachines == "" {
-				if err != nil {
-					fmt.Fprint(os.Stderr, err)
-				}
-				if etcdmachines == "" {
-					fmt.Fprint(os.Stderr, "ETCD_MACHINES not set.")
-				}
-			} else {
-				e.machines = etcdmachines
-			}
-		}
-	}()
 }
 
 func getEnvValue(name string) (string, error) {

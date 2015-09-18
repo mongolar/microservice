@@ -47,17 +47,14 @@ func init() {
 // Service defines the service that will be declared to
 // Vulcand.
 type Service struct {
-	Title         string       `json:"Title"`
-	Version       string       `json:"Version"`
-	Type          string       `json:"Type"`
-	Private       bool         `json:"Private"`
-	Requires      []Service    `json:"Requires,omitempty"`
-	Parameters    []Parameter  `json:"Parameters"`
-	Method        string       `json:"Method"`
-	Handler       http.Handler `json:"-"`
-	privateKeyOld string
-	privateKey    string
-	foreign       bool
+	Title      string       `json:"Title"`
+	Version    string       `json:"Version"`
+	Type       string       `json:"Type"`
+	Private    bool         `json:"Private"`
+	Requires   []Service    `json:"Requires,omitempty"`
+	Parameters Parameters   `json:"Parameters"`
+	Method     string       `json:"Method"`
+	Handler    http.Handler `json:"-"`
 }
 
 func New() *Service {
@@ -70,24 +67,13 @@ func Handler(handler http.Handler) {
 	DefaultService.Handler = handler
 }
 
-func Get(title string, version string) (*Service, error) {
+func GetService(title string, version string) (*Service, error) {
 	service := &Service{Title: title, Version: version, foreign: true}
-	err := service.Get()
-	if err == nil {
-		service.follow()
-	}
+	err := service.GetService()
 	return service, err
 }
 
-func (s *Service) Get() error {
-	client := etcd.NewClient(Env.Machines())
-	defer client.Close()
-	raw, err := client.RawGet(s.backendPath(), false, false)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(raw.Body, s)
-	return err
+func (s *Service) GetService() error {
 }
 
 func Serve() {

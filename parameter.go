@@ -18,6 +18,17 @@ func init() {
 	AddSetType("query", SetQueryValue)
 }
 
+type Parameters []*Parameter
+
+func (ps *Parameters) GetParameter(key string) (*Parameter, error) {
+	for p, _ := range ps {
+		if p.Key == key {
+			return p, nil
+		}
+	}
+	return new(Parameter), fmt.Errorf("Parameter %v not found", key)
+}
+
 /*
 Parameter defines a single parameter for the service to be called.
 
@@ -48,6 +59,7 @@ type Parameter struct {
 	Position    string
 	Required    bool
 	DataType    string
+	Method      string
 }
 
 func (p *Parameter) GetValue(val interface{}, r *http.Request) error {

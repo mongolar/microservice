@@ -7,6 +7,7 @@ import (
 type PrivateDeclaration interface {
 	SetPrivateKey(*service.Service)
 	GetPrivateKey(*service.Service)
+	ValidatePrivateKey(*service.Service, r *http.Request)
 }
 
 func validPrivate(d *Declaration) bool {
