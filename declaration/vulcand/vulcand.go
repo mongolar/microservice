@@ -7,7 +7,7 @@ import (
 var etcdmachines string
 
 func init() {
-	flag.StringVar(&etcdmachines, "etcd-v", "", "The etcd machines for Vulcand.")
+	flag.StringVar(&etcdmachines, "etcdv", "", "The etcd machines for Vulcand.")
 }
 
 type Vulcand struct{}
@@ -28,7 +28,7 @@ func (v *Vulcand) Register(s *service.Service) error {
 
 }
 
-func (v *Vulcand) Get(s *service.Service) error {
+func (v *Vulcand) GetService(s *service.Service) error {
 	client := etcd.NewClient(Machines())
 	defer client.Close()
 	raw, err := client.RawGet(s.backendPath(), false, false)
