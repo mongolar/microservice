@@ -47,10 +47,6 @@ func (e *Environment) bootstrap() {
 	e.URL = fmt.Sprintf("http://%v:%v", e.Host, e.Port)
 }
 
-func (e *Environment) Machines() []string {
-	return strings.Split(e.machines, "|")
-}
-
 func getEnvValue(name string) (string, error) {
 	value := os.Getenv(name)
 	if value == "" {

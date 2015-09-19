@@ -4,21 +4,22 @@ import (
 	"net/http"
 )
 
-var GetTypes = make(map[string]ParameterType)
-var SetTypes = make(map[string]ParameterType)
-
 func init() {
-	AddGetType("form", GetFormValue)
-	AddGetType("url", GetURLValue)
-	AddGetType("json", GetJsonValue)
-	AddGetType("query", GetQueryValue)
-	AddSetType("form", SetFormValue)
-	AddSetType("url", SetURLValue)
-	AddSetType("json", SetJsonValue)
-	AddSetType("query", SetQueryValue)
+	
 }
 
+const ParametersTypes map[string]ParameterType
+
 type Parameters []*Parameter
+
+func (ps *Parameters) InitParameters() {
+	for p, _ := range ps {
+		if p.Type == "" {
+			log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
+		}
+	}
+
+}
 
 func (ps *Parameters) GetParameter(key string) (*Parameter, error) {
 	for p, _ := range ps {
@@ -56,45 +57,24 @@ type Parameter struct {
 	Key         string
 	Description string
 	Type        string
-	Position    string
 	Required    bool
 	DataType    string
 	Method      string
+	OtherData   map[string]string
+	pt	ParameterType
+}
+
+type ParameterType interface{
+	Get(interface{}, r*http.Request)
+	Set(interface{}, r*http.Request)
+}
+
+func AddParameterType(ParameterType){
+
 }
 
 func (p *Parameter) GetValue(val interface{}, r *http.Request) error {
-	GetTypes[p.Type](val, p, r)
-}
 
-type ParameterType func(interface{}, Parameter, *http.Request) error
-
-func AddGetType(key string, pt ParameterType) {
-	GetTypes[key] = pt
-}
-func AddSetType(key string, pt ParameterType) {
-	SetTypes[key] = pt
-}
-
-func GetFormValue(val interface{}, param Parameter, r *http.Request) error {
-
-}
-func SetFormValue(val interface{}, param Parameter, r *http.Request) error {
-}
-
-func GetURLValue(val interface{}, param Parameter, r *http.Request) error {
-}
-func SetURLValue(val interface{}, param Parameter, r *http.Request) error {
-}
-
-func GetJsonValue(val interface{}, param Parameter, r *http.Request) error {
-}
-func SetJsonValue(val interface{}, param Parameter, r *http.Request) error {
-}
-
-func GetQueryValue(val interface{}, param Parameter, r *http.Request) error {
-}
-
-func SetQueryValue(val interface{}, param Parameter, r *http.Request) error {
 }
 
 func SetValue(val interface{}, data interface{}, declaredtype string) error {
