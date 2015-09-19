@@ -78,13 +78,3 @@ func watchPrivateKey(key string, set func(*etcd.Response)) {
 		}
 	}()
 }
-
-func newPrivateKey() string {
-	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		//TODO output err
-		return newPrivateKey()
-	}
-	return base64.URLEncoding.EncodeToString(key)
-}

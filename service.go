@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-// DefaultService is default server similair to the DefaultMuxServer
+// DefaultService is default server similair to the DefaultMuxServer provided to easily start new server
 var DefaultService *Service
 
 // Frequency with which to refresh service values
@@ -44,8 +44,7 @@ func init() {
 	DefaultService = service
 }
 
-// Service defines the service that will be declared to
-// Vulcand.
+// Service definition
 type Service struct {
 	Title      string       `json:"Title"`
 	Version    string       `json:"Version"`
@@ -57,23 +56,32 @@ type Service struct {
 	Handler    http.Handler `json:"-"`
 }
 
+// Get a new Service and set the default Handler to the DefaultServerMux
 func New() *Service {
 	service := new(Service)
 	service.Handler = http.DefaultServeMux
 	return service
 }
 
+// Set handler for the deault service
 func Handler(handler http.Handler) {
 	DefaultService.Handler = handler
 }
 
+// Return service description based on title and version
 func GetService(title string, version string) (*Service, error) {
 	service := &Service{Title: title, Version: version, foreign: true}
 	err := service.GetService()
 	return service, err
 }
 
+// GetService based on instantiated service, requires Title and Version to be set
 func (s *Service) GetService() error {
+	if s.Title == "" || Version == "" {
+		return errors.New("Title and Version is required to retrieve a service")
+	}
+	herald.GetService(s)
+
 }
 
 func Serve() {
@@ -98,60 +106,26 @@ func (s *Service) bootstrap() {
 	if s.Private {
 		s.registerPrivateService()
 	}
-	s.heartbeat()
 	s.checkRequired()
 	s.shutdown()
 }
 
 func (s *Service) register() {
-	client := etcd.NewClient(Env.Machines())
-	servicetype, err := json.Marshal(s)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-	}
-	//TODO: ERROR handling needs to be added
-	_, err = client.Set(s.backendPath(), string(servicetype), 0)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-	}
-	serviceurl, err := json.Marshal(Env)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-	}
-	_, err = client.Set(s.serverPath(), string(serviceurl), Frequency)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-	}
-	client.Close()
+	herald.Register(s)
 }
 
 func (s *Service) unregister() error {
-	client := etcd.NewClient(Env.Machines())
-	_, err := client.Delete(s.serverPath(), false)
-	//TODO unregister private key
-	if s.Private {
-		_, err = client.Delete(s.privateKeyPath(), false)
-	}
-	client.Close()
-	return err
+	herald.UnRegister(s)
 }
 
-func (s *Service) heartbeat() {
-	go func() {
-		for _ = range time.Tick(time.Duration(Frequency-1) * time.Second) {
-			s.register()
-		}
-	}()
-}
 func (s *Service) checkRequired() {
 	client := etcd.NewClient(Env.Machines())
 	defer client.Close()
 	for _, rs := range s.Requires {
-		_, err := client.Get(rs.basePath(), false, true)
+		err := rs.GetService()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, err)
 		}
-		//TODO check if any servers registered
 	}
 }
 
@@ -169,7 +143,7 @@ func (s *Service) shutdown() {
 			if err == nil {
 				os.Exit(0)
 			} else {
-				fmt.Fprint(os.Stderr, err)
+				fmt.Fprintf(os.Stderr, err)
 				os.Exit(1)
 			}
 		}
