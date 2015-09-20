@@ -1,18 +1,23 @@
 package service
 
 import (
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
+	"reflect"
 )
 
 func init() {
-	
+
 }
 
-const ParametersTypes map[string]ParameterType
+var ParametersTypes map[string]ParameterType
 
-type Parameters []*Parameter
+type Parameters []Parameter
 
 func (ps *Parameters) InitParameters() {
+
 	for p, _ := range ps {
 		if p.Type == "" {
 			log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
@@ -61,20 +66,20 @@ type Parameter struct {
 	DataType    string
 	Method      string
 	OtherData   map[string]string
-	pt	ParameterType
+	pt          ParameterType
 }
 
-type ParameterType interface{
-	Get(interface{}, r*http.Request)
-	Set(interface{}, r*http.Request)
+type ParameterType interface {
+	Get(interface{}, *http.Request)
+	Set(interface{}, *http.Request)
 }
 
-func AddParameterType(ParameterType){
+func AddParameterType(ParameterType) {
 
 }
 
 func (p *Parameter) GetValue(val interface{}, r *http.Request) error {
-
+	return fmt.Errorf("")
 }
 
 func SetValue(val interface{}, data interface{}, declaredtype string) error {

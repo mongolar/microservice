@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
-	"time"
 )
 
 var Env Environment
@@ -33,15 +31,6 @@ func (e *Environment) bootstrap() {
 		e.Host, err = getEnvValue("MICRO_SERVICES_HOST")
 		if err != nil {
 			log.Fatal(err)
-		}
-	}
-	if e.machines == "" {
-		var err error
-		e.machines, err = getEnvValue("ETCD_MACHINES")
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			e.refreshEtcdMachines()
 		}
 	}
 	e.URL = fmt.Sprintf("http://%v:%v", e.Host, e.Port)

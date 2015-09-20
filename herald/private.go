@@ -3,7 +3,7 @@ package herald
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"github/mongolar/service"
+	"github.com/mongolar/service"
 )
 
 var private
@@ -13,22 +13,17 @@ func init() {
 }
 
 type PrivateHerald interface {
-	InitPrivate()
-	SetPrivateKey(*service.Service) error
-	GetPrivateKey(*service.Service) error
-	ValidatePrivateKey(*service.Service, *http.Request) (bool, error)
+	InitPrivate(*service.Service)
+	ValidatePrivate(*service.Service, *http.Request) (bool, error)
+	SetPrivateRequest(*service.Service, *http.Request) error
 }
 
-func SetPrivateKey(s *service.Service){
-	return DefaultHerald.SetPrivateKey(s)
+func ValidatePrivate(s *service.Service, r *http.Request) (bool, error){
+	return DefaultHerald.ValidatePrivate(s, r)
 }
 
-func GetPrivateKey(s *service.Service){
-	return DefaultHerald.GetPrivateKey(s)
-}
-
-func ValidatePrivateKey(s *service.Service, r *http.Request) (bool, error){
-	return DefaultHerald.ValidatePrivateKey(s, r)
+func SetPrivate(s *service.Service, r *http.Request) error{
+	return DefaultHerald.SetPrivate(s, r)
 }
 
 func IsPrivate(d *Herald) bool {

@@ -6,17 +6,17 @@
 package service
 
 import (
-	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/coreos/go-etcd/etcd"
+	"github.com/mongolar/service/herald"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 // DefaultService is default server similair to the DefaultMuxServer provided to easily start new server
@@ -70,18 +70,17 @@ func Handler(handler http.Handler) {
 
 // Return service description based on title and version
 func GetService(title string, version string) (*Service, error) {
-	service := &Service{Title: title, Version: version, foreign: true}
+	service := &Service{Title: title, Version: version}
 	err := service.GetService()
 	return service, err
 }
 
 // GetService based on instantiated service, requires Title and Version to be set
 func (s *Service) GetService() error {
-	if s.Title == "" || Version == "" {
+	if s.Title == "" || s.Version == "" {
 		return errors.New("Title and Version is required to retrieve a service")
 	}
 	herald.GetService(s)
-
 }
 
 func Serve() {
@@ -98,6 +97,14 @@ func (s *Service) Serve() {
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", Env.Port), http.HandlerFunc(s.servePrivate)))
 	} else {
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", Env.Port), s.Handler))
+	}
+}
+
+func (s *Service) servePrivate(w http.ResponseWriter, r *http.Request) {
+	if herald.ValidatePrivate(r) {
+		s.Handler.ServeHTTP(w, r)
+	} else {
+		http.Error(w, "Forbidden", 403)
 	}
 }
 
