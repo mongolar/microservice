@@ -1,11 +1,11 @@
 package service
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
-	"log"
+	//	"log"
 	"net/http"
-	"reflect"
+	//"reflect"
 )
 
 func init() {
@@ -17,21 +17,22 @@ var ParametersTypes map[string]ParameterType
 type Parameters []Parameter
 
 func (ps *Parameters) InitParameters() {
-
-	for p, _ := range ps {
-		if p.Type == "" {
-			log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
+	/*
+		for p, _ := range ps {
+			if p.Type == "" {
+				log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
+			}
 		}
-	}
+	*/
 
 }
 
 func (ps *Parameters) GetParameter(key string) (*Parameter, error) {
-	for p, _ := range ps {
+	/*for p, _ := range ps {
 		if p.Key == key {
 			return p, nil
 		}
-	}
+	}*/
 	return new(Parameter), fmt.Errorf("Parameter %v not found", key)
 }
 
@@ -83,24 +84,25 @@ func (p *Parameter) GetValue(val interface{}, r *http.Request) error {
 }
 
 func SetValue(val interface{}, data interface{}, declaredtype string) error {
-	rv := reflect.ValueOf(val)
-	dv := reflect.ValueOf(data)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.New("Illegal value type, must be pointer and not nil")
-	}
-	realval := rv.Elem()
-	dataval := rv.Elem()
-	realtype := reflect.TypeOf(realval)
-	datatype := reflect.TypeOf(data)
-	if realtype != datatype {
-		return fmt.Errorf("Type mismatch attempt to set %v as %v",
-			reflect.TypeOf(data), reflect.TypeOf(realval))
-	}
-	if realtype.String() != declaredtype {
-		return fmt.Errorf("Type mismatch declared Parameter DataType %v does not match value type %v.",
-			declaredtype, realtype.String())
-	}
-	realval = dataval
+	/*
+		rv := reflect.ValueOf(val)
+		dv := reflect.ValueOf(data)
+		if rv.Kind() != reflect.Ptr || rv.IsNil() {
+			return errors.New("Illegal value type, must be pointer and not nil")
+		}
+		realval := rv.Elem()
+		dataval := rv.Elem()
+		realtype := reflect.TypeOf(realval)
+		datatype := reflect.TypeOf(data)
+		if realtype != datatype {
+			return fmt.Errorf("Type mismatch attempt to set %v as %v",
+				reflect.TypeOf(data), reflect.TypeOf(realval))
+		}
+		if realtype.String() != declaredtype {
+			return fmt.Errorf("Type mismatch declared Parameter DataType %v does not match value type %v.",
+				declaredtype, realtype.String())
+		}
+		realval = dataval
+	*/
 	return nil
-
 }
