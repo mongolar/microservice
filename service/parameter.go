@@ -3,7 +3,7 @@ package service
 import (
 	//"errors"
 	"fmt"
-	//	"log"
+	"log"
 	"net/http"
 	//"reflect"
 )
@@ -53,7 +53,7 @@ func (p *Parameter) GetValue(val interface{}, r *http.Request) error {
 type Parameters []Parameter
 
 func (ps Parameters) Validate() {
-	for p := range ps {
+	for _, p := range ps {
 		if p.Type == "" {
 			log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
 		}
@@ -63,9 +63,9 @@ func (ps Parameters) Validate() {
 }
 
 func (ps Parameters) GetParam(key string) (*Parameter, error) {
-	for p := range ps {
+	for _, p := range ps {
 		if p.Key == key {
-			return p, nil
+			return &p, nil
 		}
 	}
 	return new(Parameter), fmt.Errorf("Parameter %v not found", key)

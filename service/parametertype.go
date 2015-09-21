@@ -1,9 +1,11 @@
 package service
 
-import ()
+import (
+	"net/http"
+)
 
 func init() {
-	AddParameterType("form", FormParameter{})
+	AddParameterType("form", make(FormParameter{}))
 	AddParameterType("url", URLParameter{})
 	AddParameterType("json", JSONParameter{})
 	AddParameterType("query", QueryParameter{})
@@ -23,31 +25,39 @@ func AddParameterType(key string, pt ParameterType) {
 type FormParameter struct{}
 
 func (fp FormParameter) Get(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 func (fp FormParameter) Set(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 type URLParameter struct{}
 
 func (up URLParameter) Get(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 func (up URLParameter) Set(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 type JSONParameter struct{}
 
 func (jp JSONParameter) Get(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 func (jp JSONParameter) Set(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 type QueryParameter struct{}
 
 func (qp QueryParameter) Get(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
 
 func (qp QueryParameter) Set(val interface{}, r *http.Request, p Parameter) error {
+	return nil
 }
