@@ -54,8 +54,9 @@ func (s *Service) ValidParameters(r *http.Request) bool {
 func (s *Service) MarshalF(file string) {
 	_, err := os.Stat(file)
 	if err == nil {
+		filename := len(file) - len(".yaml")
 		v := viper.New()
-		v.SetConfigName(file)
+		v.SetConfigName(file[0:filename])
 		err := v.ReadInConfig()
 		if err != nil {
 			log.Fatal(err)
@@ -66,5 +67,6 @@ func (s *Service) MarshalF(file string) {
 		}
 		return
 	}
+
 	log.Fatal(err)
 }

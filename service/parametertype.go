@@ -5,13 +5,13 @@ import (
 )
 
 func init() {
-	AddParameterType("form", make(FormParameter{}))
+	AddParameterType("form", FormParameter{})
 	AddParameterType("url", URLParameter{})
 	AddParameterType("json", JSONParameter{})
 	AddParameterType("query", QueryParameter{})
 }
 
-var ParametersTypes map[string]ParameterType
+var ParametersTypes map[string]ParameterType = make(map[string]ParameterType)
 
 type ParameterType interface {
 	Get(interface{}, *http.Request, Parameter) error

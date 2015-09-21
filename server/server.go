@@ -47,8 +47,10 @@ func Service(service *service.Service) {
 func (s *Server) Init() {
 	environment.Init()
 	s.Service.Init()
-	s.Herald.Init()
-	s.Herald.Register(s.Service)
+	if s.Herald != nil {
+		s.Herald.Init()
+		s.Herald.Register(s.Service)
+	}
 	s.shutdown()
 }
 
