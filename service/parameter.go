@@ -12,30 +12,6 @@ func init() {
 
 }
 
-var ParametersTypes map[string]ParameterType
-
-type Parameters []Parameter
-
-func (ps *Parameters) InitParameters() {
-	/*
-		for p, _ := range ps {
-			if p.Type == "" {
-				log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
-			}
-		}
-	*/
-
-}
-
-func (ps *Parameters) GetParameter(key string) (*Parameter, error) {
-	/*for p, _ := range ps {
-		if p.Key == key {
-			return p, nil
-		}
-	}*/
-	return new(Parameter), fmt.Errorf("Parameter %v not found", key)
-}
-
 /*
 Parameter defines a single parameter for the service to be called.
 
@@ -70,20 +46,32 @@ type Parameter struct {
 	pt          ParameterType
 }
 
-type ParameterType interface {
-	Get(interface{}, *http.Request)
-	Set(interface{}, *http.Request)
-}
-
-func AddParameterType(ParameterType) {
-
-}
-
 func (p *Parameter) GetValue(val interface{}, r *http.Request) error {
 	return fmt.Errorf("")
 }
 
-func SetValue(val interface{}, data interface{}, declaredtype string) error {
+type Parameters []Parameter
+
+func (ps Parameters) Validate() {
+	for p := range ps {
+		if p.Type == "" {
+			log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
+		}
+
+	}
+
+}
+
+func (ps Parameters) GetParam(key string) (*Parameter, error) {
+	for p := range ps {
+		if p.Key == key {
+			return p, nil
+		}
+	}
+	return new(Parameter), fmt.Errorf("Parameter %v not found", key)
+}
+
+func SetValue(receiver interface{}, data interface{}, declaredtype string) error {
 	/*
 		rv := reflect.ValueOf(val)
 		dv := reflect.ValueOf(data)
