@@ -8,10 +8,6 @@ import (
 	//"reflect"
 )
 
-func init() {
-
-}
-
 /*
 Parameter defines a single parameter for the service to be called.
 
@@ -41,13 +37,44 @@ type Parameter struct {
 	Type        string
 	Required    bool
 	DataType    string
-	Method      string
-	OtherData   map[string]string
-	pt          ParameterType
+	Position    string
 }
 
-func (p *Parameter) GetValue(val interface{}, r *http.Request) error {
-	return fmt.Errorf("")
+func (p *Parameter) Set(val interface{}, r *http.Request) error {
+	err := validateReceiver(val, p.DataType)
+	if err != nil {
+		return err
+	}
+	pt, err := getParameterType(p.Type)
+	if err != nil {
+		return err
+	}
+	return pt.Set(val, r, p)
+}
+
+func (p *Parameter) Get(val interface{}, r *http.Request) error {
+	err := validateReceiver(val, p.DataType)
+	if err != nil {
+		return err
+	}
+	pt, err := getParameterType(p.Type)
+	if err != nil {
+		return err
+	}
+	return pt.Get(val, r, p)
+}
+
+func validateReceiver(val interface{}, datatype string) err {
+	refval := reflect.ValueOf(val)
+	if rval.Kind() != reflect.Ptr || rval.IsNil() {
+		return errors.New("Illegal value type, must be pointer and not nil")
+	}
+	e := rv.Elem()
+	valtype := reflect.TypeOf(e).String()
+	if valtype != datatype {
+		return fmt.Errorf("Illegal value type, %v does not match %v", valtype, datatype)
+	}
+	return nil
 }
 
 type Parameters []Parameter
@@ -56,6 +83,9 @@ func (ps Parameters) Validate() {
 	for _, p := range ps {
 		if p.Type == "" {
 			log.Fatal(fmt.Errorf("Parameter Type not set for %v", p.Key))
+		}
+		if p.DataType == "" {
+			log.Fatal(fmt.Errorf("Data Type not set for %v", p.Key))
 		}
 
 	}
@@ -71,26 +101,30 @@ func (ps Parameters) GetParam(key string) (*Parameter, error) {
 	return new(Parameter), fmt.Errorf("Parameter %v not found", key)
 }
 
-func SetValue(receiver interface{}, data interface{}, declaredtype string) error {
-	/*
-		rv := reflect.ValueOf(val)
-		dv := reflect.ValueOf(data)
-		if rv.Kind() != reflect.Ptr || rv.IsNil() {
-			return errors.New("Illegal value type, must be pointer and not nil")
-		}
-		realval := rv.Elem()
-		dataval := rv.Elem()
-		realtype := reflect.TypeOf(realval)
-		datatype := reflect.TypeOf(data)
-		if realtype != datatype {
-			return fmt.Errorf("Type mismatch attempt to set %v as %v",
-				reflect.TypeOf(data), reflect.TypeOf(realval))
-		}
-		if realtype.String() != declaredtype {
-			return fmt.Errorf("Type mismatch declared Parameter DataType %v does not match value type %v.",
-				declaredtype, realtype.String())
-		}
-		realval = dataval
-	*/
+func SetValue(receiver interface{}, data interface{}, datatype string) error {
+	err := validateReceiver(receiver, datatype)
+	if err != nil {
+		return err
+	}
+	realval := rv.Elem()
+	dataval := rv.Elem()
+	realtype := reflect.TypeOf(realval)
+	datatype := reflect.TypeOf(data)
+	if realtype != datatype {
+		return fmt.Errorf("Type mismatch attempt to set %v as %v",
+			reflect.TypeOf(data), reflect.TypeOf(realval))
+	}
+	if realtype.String() != declaredtype {
+		return fmt.Errorf("Type mismatch declared Parameter DataType %v does not match value type %v.",
+			declaredtype, realtype.String())
+	}
+	realval = dataval
 	return nil
+}
+
+type Value struct {
+	Receiver interface{}
+	Element
+	DataType
+	RefValue reflect.Value
 }

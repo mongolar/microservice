@@ -22,6 +22,14 @@ func AddParameterType(key string, pt ParameterType) {
 	ParametersTypes[key] = pt
 }
 
+func GetParameterType(key string) (ParameterType, error) {
+	if pt, ok := ParametersTypes[key]; ok {
+		return pt nil
+	}
+	err := fmt.Errorf("Use of an unregistered parameter type: %v")
+	return err
+}
+
 type FormParameter struct{}
 
 func (fp FormParameter) Get(val interface{}, r *http.Request, p Parameter) error {
