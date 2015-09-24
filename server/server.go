@@ -50,8 +50,8 @@ func (s *Server) Init() {
 	if s.Herald != nil {
 		s.Herald.Init()
 		s.Herald.Register(s.Service)
+		s.shutdown()
 	}
-	s.shutdown()
 }
 
 func (s *Server) Serve() {

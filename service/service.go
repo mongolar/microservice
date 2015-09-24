@@ -7,6 +7,7 @@ package service
 
 import (
 	"flag"
+	"github.com/mongolar/service/parameter"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
@@ -23,13 +24,13 @@ func init() {
 
 // Service definition
 type Service struct {
-	Title      string     `json:"Title"`
-	Version    string     `json:"Version"`
-	Type       string     `json:"Type"`
-	Private    bool       `json:"Private"`
-	Requires   []Service  `json:"Requires,omitempty"`
-	Parameters Parameters `json:"Parameters"`
-	Method     string     `json:"Method"`
+	Title      string               `json:"Title"`
+	Version    string               `json:"Version"`
+	Type       string               `json:"Type"`
+	Private    bool                 `json:"Private"`
+	Requires   []Service            `json:"Requires,omitempty"`
+	Parameters parameter.Parameters `json:"Parameters"`
+	Method     string               `json:"Method"`
 }
 
 // Get a new Service and set the default Handler to the DefaultServerMux

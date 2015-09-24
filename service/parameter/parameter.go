@@ -1,4 +1,4 @@
-package service
+package parameter
 
 import (
 	//"errors"
@@ -66,7 +66,7 @@ func (p *Parameter) Get(val interface{}, r *http.Request) error {
 
 func validateReceiver(val interface{}, datatype string) err {
 	refval := reflect.ValueOf(val)
-	if rval.Kind() != reflect.Ptr || rval.IsNil() {
+	if refval.Kind() != reflect.Ptr || refval.IsNil() {
 		return errors.New("Illegal value type, must be pointer and not nil")
 	}
 	e := rv.Elem()
@@ -120,11 +120,4 @@ func SetValue(receiver interface{}, data interface{}, datatype string) error {
 	}
 	realval = dataval
 	return nil
-}
-
-type Value struct {
-	Receiver interface{}
-	Element
-	DataType
-	RefValue reflect.Value
 }
