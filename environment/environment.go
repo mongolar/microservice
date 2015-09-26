@@ -15,13 +15,15 @@ func init() {
 	flag.StringVar(&DefaultEnvironment.Port, "port", "", "The microservice port.")
 	flag.StringVar(&DefaultEnvironment.Host, "host", "", "The microservice host.")
 	flag.Uint64Var(&DefaultEnvironment.Frequency, "frequency", 10, "The frequency at which the service updates statuses.")
+	flag.StringVar(&DefaultEnvironment.IntServiceURL, "int", "", "The internal service to service url.")
 }
 
 type Environment struct {
-	Port      string `json:"-"`
-	Host      string `json:"-"`
-	Frequency uint64 `json:"-"`
-	URL       string `json:"URL"`
+	Port          string `json:"-"`
+	Host          string `json:"-"`
+	Frequency     uint64 `json:"-"`
+	URL           string `json:"URL"`
+	IntServiceURL string `json:"-"`
 }
 
 func (e *Environment) Init() {
@@ -31,6 +33,13 @@ func (e *Environment) Init() {
 	if e.Host == "" {
 		var err error
 		e.Host, err = GetEnvValue("MICRO_SERVICES_HOST")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	if e.IntServiceURL == "" {
+		var err error
+		e.Host, err = GetEnvValue("MICRO_SERVICES_INT_URL")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -56,6 +65,10 @@ func Frequency() uint64 {
 
 func URL() string {
 	return DefaultEnvironment.URL
+}
+
+func IntServiceURL() string {
+	return DefaultEnvironment.IntServiceURL
 }
 
 func GetEnvValue(name string) (string, error) {

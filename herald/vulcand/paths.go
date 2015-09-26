@@ -16,5 +16,5 @@ func serverPath(s *service.Service) string {
 }
 
 func basePath(s *service.Service) string {
-	return fmt.Sprintf("%v/%v.%v", vulcanpath, s.Title, s.Version)
+	return fmt.Sprintf("%v/%v.%v.%v", vulcanpath, s.Domain, s.Title, s.Version)
 }

@@ -40,6 +40,11 @@ type Parameter struct {
 	Position    string
 }
 
+func (p *Parameter) Value() reflect.Value {
+	dt = DataTypes[p.Key]
+	return New(dt)
+}
+
 func (p *Parameter) Set(val interface{}, r *http.Request) error {
 	err := validateReceiver(val, p.DataType)
 	if err != nil {
@@ -92,32 +97,21 @@ func (ps Parameters) Validate() {
 
 }
 
-func (ps Parameters) GetParam(key string) (*Parameter, error) {
+func (ps Parameters) GetRequired() []string {
+	required := make([]string, 0)
+	for _, p := range ps {
+		if p.Required {
+			required = append(required, p.Key)
+		}
+	}
+	return required
+}
+
+func (ps Parameters) Get(key string) (*Parameter, error) {
 	for _, p := range ps {
 		if p.Key == key {
 			return &p, nil
 		}
 	}
 	return new(Parameter), fmt.Errorf("Parameter %v not found", key)
-}
-
-func SetValue(receiver interface{}, data interface{}, datatype string) error {
-	err := validateReceiver(receiver, datatype)
-	if err != nil {
-		return err
-	}
-	realval := rv.Elem()
-	dataval := rv.Elem()
-	realtype := reflect.TypeOf(realval)
-	datatype := reflect.TypeOf(data)
-	if realtype != datatype {
-		return fmt.Errorf("Type mismatch attempt to set %v as %v",
-			reflect.TypeOf(data), reflect.TypeOf(realval))
-	}
-	if realtype.String() != declaredtype {
-		return fmt.Errorf("Type mismatch declared Parameter DataType %v does not match value type %v.",
-			declaredtype, realtype.String())
-	}
-	realval = dataval
-	return nil
 }

@@ -25,6 +25,7 @@ func init() {
 // Service definition
 type Service struct {
 	Title      string               `json:"Title"`
+	Domain     string               `json:"Domain"`
 	Version    string               `json:"Version"`
 	Type       string               `json:"Type"`
 	Private    bool                 `json:"Private"`
@@ -68,6 +69,5 @@ func (s *Service) MarshalF(file string) {
 		}
 		return
 	}
-
 	log.Fatal(err)
 }
